@@ -44,10 +44,9 @@ func (e *Enemy) Update(targetX, targetY float64) {
 	}
 }
 
-func (e *Enemy) Draw(screen *ebiten.Image, cam *Camera) {
+func (e *Enemy) Draw(screen *ebiten.Image) {
 	img := e.Frames[e.FrameIndex]
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(cam.Zoom, cam.Zoom)
-	op.GeoM.Translate(e.X-cam.X, e.Y-cam.Y)
+	op.GeoM.Translate(e.X, e.Y)
 	screen.DrawImage(img, op)
 }

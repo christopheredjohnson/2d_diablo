@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -15,15 +16,10 @@ const (
 type Game struct {
 	Player  *Player
 	Enemies []*Enemy
-	Camera  *Camera
 }
 
 func (g *Game) Update() error {
 	g.Player.Update()
-
-	// Camera centers on the player
-	g.Camera.X = g.Player.X - float64(g.Camera.Width)/2
-	g.Camera.Y = g.Player.Y - float64(g.Camera.Height)/2
 
 	for _, enemy := range g.Enemies {
 		enemy.Update(g.Player.X, g.Player.Y)
@@ -33,15 +29,26 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.Player.Draw(screen, g.Camera)
+	g.Player.Draw(screen)
 
 	for _, enemy := range g.Enemies {
-		enemy.Draw(screen, g.Camera)
+		enemy.Draw(screen)
 	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
+}
+
+// Cuts a sprite sheet into evenly sized frames
+func sliceSpriteSheet(sheet *ebiten.Image, frameCount, frameWidth, frameHeight int) []*ebiten.Image {
+	frames := []*ebiten.Image{}
+	for i := range frameCount {
+		rect := image.Rect(i*frameWidth, 0, (i+1)*frameWidth, frameHeight)
+		frame := sheet.SubImage(rect).(*ebiten.Image)
+		frames = append(frames, frame)
+	}
+	return frames
 }
 
 func main() {
@@ -51,15 +58,17 @@ func main() {
 	animations := LoadPlayerAnimations(96, 80, 5)
 
 	player := &Player{
-		Animations:  animations,
-		X:           screenWidth / 2,
-		Y:           screenHeight / 2,
-		Speed:       playerSpeed,
-		Dir:         Down,
-		State:       Idle,
-		FrameWidth:  96,
-		FrameHeight: 80,
-		FrameDelay:  10,
+		Animations:     animations,
+		X:              screenWidth / 2,
+		Y:              screenHeight / 2,
+		Speed:          playerSpeed,
+		Dir:            Down,
+		State:          Idle,
+		FrameWidth:     96,
+		FrameHeight:    80,
+		FrameDelay:     10,
+		AttackCooldown: 20, // frames between attacks
+		AttackRange:    40.0,
 	}
 
 	batFrames := LoadEnemySpriteSheet("assets/bat/default.png", 4, 32, 32)
@@ -76,18 +85,9 @@ func main() {
 		},
 	}
 
-	cam := &Camera{
-		X:      0,
-		Y:      0,
-		Zoom:   1.5,
-		Width:  screenWidth,
-		Height: screenHeight,
-	}
-
 	g := &Game{
 		Player:  player,
 		Enemies: enemies,
-		Camera:  cam,
 	}
 
 	if err := ebiten.RunGame(g); err != nil {
