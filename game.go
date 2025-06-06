@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 type Game struct {
+	Spawners      []*Spawner
 	Player        *Player
 	Enemies       []*Enemy
 	Camera        *Camera
@@ -15,6 +17,10 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	for _, spawner := range g.Spawners {
+		spawner.Update(g)
+	}
+
 	aliveEnemies := []*Enemy{}
 	for _, enemy := range g.Enemies {
 		if !enemy.Dead {
@@ -54,6 +60,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	screen.Fill(color.White)
 	g.Player.Draw(screen, g.Camera)
 
 	for _, enemy := range g.Enemies {

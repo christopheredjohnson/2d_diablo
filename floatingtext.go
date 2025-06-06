@@ -1,8 +1,11 @@
 package main
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/image/font/basicfont"
 )
 
 type FloatingText struct {
@@ -21,10 +24,10 @@ func (ft *FloatingText) Update() {
 }
 
 func (ft *FloatingText) Draw(screen *ebiten.Image, cam *Camera) {
-	// clr := color.RGBA{255, 0, 0, uint8(ft.Alpha * 255)}
-	// textOpt := &ebiten.DrawImageOptions{}
-	textX := ft.X - cam.X
-	textY := ft.Y - cam.Y
+	x := int(ft.X - cam.X)
+	y := int(ft.Y - cam.Y)
 
-	ebitenutil.DebugPrintAt(screen, ft.Text, int(textX), int(textY))
+	col := color.RGBA{255, 0, 0, uint8(ft.Alpha * 255)}
+
+	text.Draw(screen, ft.Text, basicfont.Face7x13, x, y, col)
 }
