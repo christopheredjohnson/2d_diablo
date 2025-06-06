@@ -84,13 +84,22 @@ func (p *Player) Update() {
 }
 
 // Draws the correct frame of the player based on state/direction
-func (p *Player) Draw(screen *ebiten.Image) {
+func (p *Player) Draw(screen *ebiten.Image, camera *Camera) {
 	frames := p.Animations[p.State][p.Dir]
 	img := frames[p.FrameIndex%len(frames)]
+
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(p.X, p.Y)
+
+	// 1. Move the origin to the center of the sprite (unscaled)
+	op.GeoM.Translate(-float64(p.FrameWidth)/2, -float64(p.FrameHeight)/2)
+
+	// 2. Move to world position relative to the camera
+	op.GeoM.Translate(p.X-camera.X, p.Y-camera.Y)
+
+	// 3. Scale the whole thing
+	op.GeoM.Scale(camera.Zoom, camera.Zoom)
+
 	screen.DrawImage(img, op)
-	op.GeoM.Reset()
 }
 
 // Loads and slices all player animations from sprite sheets

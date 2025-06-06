@@ -16,10 +16,24 @@ const (
 type Game struct {
 	Player  *Player
 	Enemies []*Enemy
+	Camera  *Camera
 }
 
 func (g *Game) Update() error {
+
+	if ebiten.IsKeyPressed(ebiten.KeyQ) {
+		g.Camera.Zoom += 0.01
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyE) {
+		g.Camera.Zoom -= 0.01
+		if g.Camera.Zoom < 0.1 {
+			g.Camera.Zoom = 0.1
+		}
+	}
+
 	g.Player.Update()
+
+	g.Camera.CenterOn(g.Player.X, g.Player.Y)
 
 	for _, enemy := range g.Enemies {
 		enemy.Update(g.Player.X, g.Player.Y)
@@ -29,10 +43,10 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.Player.Draw(screen)
+	g.Player.Draw(screen, g.Camera)
 
 	for _, enemy := range g.Enemies {
-		enemy.Draw(screen)
+		enemy.Draw(screen, g.Camera)
 	}
 }
 
@@ -43,7 +57,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Cuts a sprite sheet into evenly sized frames
 func sliceSpriteSheet(sheet *ebiten.Image, frameCount, frameWidth, frameHeight int) []*ebiten.Image {
 	frames := []*ebiten.Image{}
-	for i := range frameCount {
+	for i := 0; i < frameCount; i++ {
 		rect := image.Rect(i*frameWidth, 0, (i+1)*frameWidth, frameHeight)
 		frame := sheet.SubImage(rect).(*ebiten.Image)
 		frames = append(frames, frame)
@@ -85,9 +99,18 @@ func main() {
 		},
 	}
 
+	camera := &Camera{
+		X:      0,
+		Y:      0,
+		Zoom:   2.0, // Or 1.0 for no zoom
+		Width:  screenWidth,
+		Height: screenHeight,
+	}
+
 	g := &Game{
 		Player:  player,
 		Enemies: enemies,
+		Camera:  camera,
 	}
 
 	if err := ebiten.RunGame(g); err != nil {

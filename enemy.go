@@ -44,9 +44,21 @@ func (e *Enemy) Update(targetX, targetY float64) {
 	}
 }
 
-func (e *Enemy) Draw(screen *ebiten.Image) {
+func (e *Enemy) Draw(screen *ebiten.Image, camera *Camera) {
 	img := e.Frames[e.FrameIndex]
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(e.X, e.Y)
+
+	frameWidth := float64(img.Bounds().Dx())
+	frameHeight := float64(img.Bounds().Dy())
+
+	// ✅ 1. Center origin (world space)
+	op.GeoM.Translate(-frameWidth/2, -frameHeight/2)
+
+	// ✅ 2. Move to world position relative to camera
+	op.GeoM.Translate(e.X-camera.X, e.Y-camera.Y)
+
+	// ✅ 3. Apply zoom
+	op.GeoM.Scale(camera.Zoom, camera.Zoom)
+
 	screen.DrawImage(img, op)
 }
