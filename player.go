@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"log"
 	"math"
 
@@ -71,6 +72,11 @@ func (p *Player) AdvanceFrame() {
 
 // Called each frame to move and animate the player
 func (p *Player) Update() {
+
+	if p.AttackTimer > 0 {
+		p.AttackTimer--
+	}
+
 	if p.State == Attacking {
 		p.AdvanceFrame()
 
@@ -117,7 +123,7 @@ func (p *Player) Update() {
 
 // Draws the correct frame of the player based on state/direction
 func (p *Player) Draw(screen *ebiten.Image, camera *Camera) {
-
+	screen.Fill(color.RGBA{30, 30, 30, 255})
 	frames := p.Animations[p.State][p.Dir]
 	if len(frames) == 0 {
 		log.Printf("Missing animation for state %v dir %v", p.State, p.Dir)
@@ -180,7 +186,7 @@ func LoadPlayerAnimations(frameWidth, frameHeight, frameDelay int) map[PlayerSta
 	return animations
 }
 
-func (p *Player) Attack(enemies []*Enemy) {
+func (p *Player) Attack(enemies []*Enemy, game *Game) {
 	if p.AttackTimer > 0 || p.State == Attacking {
 		return
 	}
@@ -197,6 +203,16 @@ func (p *Player) Attack(enemies []*Enemy) {
 
 		if dist <= p.AttackRange {
 			e.TakeDamage(1)
+			// Spawn floating text
+			fx := &FloatingText{
+				X:           e.X,
+				Y:           e.Y - 20, // slight offset above the enemy
+				Text:        "-1",
+				Alpha:       1.0,
+				Lifetime:    0,
+				MaxLifetime: 60, // about 1 second at 60fps
+			}
+			game.FloatingTexts = append(game.FloatingTexts, fx)
 		}
 	}
 }
