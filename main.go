@@ -2,9 +2,11 @@ package main
 
 import (
 	"image"
+	"image/color"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
@@ -20,6 +22,14 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+	aliveEnemies := []*Enemy{}
+	for _, enemy := range g.Enemies {
+		if !enemy.Dead {
+			enemy.Update(g.Player.X, g.Player.Y)
+			aliveEnemies = append(aliveEnemies, enemy)
+		}
+	}
+	g.Enemies = aliveEnemies
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
 		g.Camera.Zoom += 0.01
@@ -32,6 +42,14 @@ func (g *Game) Update() error {
 	}
 
 	g.Player.Update()
+
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
+		g.Player.Attack(g.Enemies)
+	}
+
+	if g.Player.AttackTimer > 0 {
+		g.Player.AttackTimer--
+	}
 
 	g.Camera.CenterOn(g.Player.X, g.Player.Y)
 
@@ -47,6 +65,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, enemy := range g.Enemies {
 		enemy.Draw(screen, g.Camera)
+	}
+
+	if g.Player.AttackTimer == g.Player.AttackCooldown-1 {
+		screenX := (g.Player.X - g.Camera.X) * g.Camera.Zoom
+		screenY := (g.Player.Y - g.Camera.Y) * g.Camera.Zoom
+
+		radius := g.Player.AttackRange * g.Camera.Zoom
+
+		ebitenutil.DrawCircle(screen, screenX, screenY, radius, color.RGBA{255, 0, 0, 100})
 	}
 }
 
@@ -80,9 +107,9 @@ func main() {
 		State:          Idle,
 		FrameWidth:     96,
 		FrameHeight:    80,
-		FrameDelay:     10,
-		AttackCooldown: 20, // frames between attacks
-		AttackRange:    40.0,
+		FrameDelay:     1,
+		AttackCooldown: 20,
+		AttackRange:    40,
 	}
 
 	batFrames := LoadEnemySpriteSheet("assets/bat/default.png", 4, 32, 32)
@@ -96,6 +123,7 @@ func main() {
 			FrameDelay: 10,
 			FrameIndex: 0,
 			FrameTimer: 0,
+			HP:         3,
 		},
 	}
 

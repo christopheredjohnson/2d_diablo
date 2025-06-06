@@ -16,6 +16,8 @@ type Enemy struct {
 	FrameTimer int
 	FrameDelay int
 	Frames     []*ebiten.Image // if animated
+	HP         int
+	Dead       bool
 }
 
 func LoadEnemySpriteSheet(path string, frameCount int, frameWidth, frameHeight int) []*ebiten.Image {
@@ -61,4 +63,11 @@ func (e *Enemy) Draw(screen *ebiten.Image, camera *Camera) {
 	op.GeoM.Scale(camera.Zoom, camera.Zoom)
 
 	screen.DrawImage(img, op)
+}
+
+func (e *Enemy) TakeDamage(amount int) {
+	e.HP -= amount
+	if e.HP <= 0 {
+		e.Dead = true
+	}
 }

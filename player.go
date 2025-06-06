@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -22,6 +23,7 @@ type PlayerState int
 const (
 	Idle PlayerState = iota
 	Running
+	Attacking
 )
 
 type Player struct {
@@ -43,14 +45,44 @@ type Player struct {
 
 func (p *Player) AdvanceFrame() {
 	p.FrameTimer++
-	if p.FrameTimer >= p.FrameDelay {
-		p.FrameTimer = 0
-		p.FrameIndex = (p.FrameIndex + 1) % len(p.Animations[p.State][p.Dir])
+	if p.FrameTimer < p.FrameDelay {
+		return
 	}
+	p.FrameTimer = 0
+
+	frames := p.Animations[p.State][p.Dir]
+
+	if p.State == Attacking {
+		// Play attack animation once
+		if p.FrameIndex < len(frames)-1 {
+			p.FrameIndex++
+		} else {
+			// Animation finished — return to idle
+			p.State = Idle
+			p.FrameIndex = 0
+			p.IsAttacking = false
+		}
+		return
+	}
+
+	// Looping animation (Idle/Running)
+	p.FrameIndex = (p.FrameIndex + 1) % len(frames)
 }
 
 // Called each frame to move and animate the player
 func (p *Player) Update() {
+	if p.State == Attacking {
+		p.AdvanceFrame()
+
+		// If attack animation is done, go back to Idle
+		if p.FrameIndex >= len(p.Animations[Attacking][p.Dir]) {
+			p.State = Idle
+			p.FrameIndex = 0
+			p.IsAttacking = false
+		}
+		return
+	}
+
 	moved := false
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
@@ -85,7 +117,13 @@ func (p *Player) Update() {
 
 // Draws the correct frame of the player based on state/direction
 func (p *Player) Draw(screen *ebiten.Image, camera *Camera) {
+
 	frames := p.Animations[p.State][p.Dir]
+	if len(frames) == 0 {
+		log.Printf("Missing animation for state %v dir %v", p.State, p.Dir)
+		return
+	}
+
 	img := frames[p.FrameIndex%len(frames)]
 
 	op := &ebiten.DrawImageOptions{}
@@ -106,11 +144,12 @@ func (p *Player) Draw(screen *ebiten.Image, camera *Camera) {
 func LoadPlayerAnimations(frameWidth, frameHeight, frameDelay int) map[PlayerState]map[Direction][]*ebiten.Image {
 	animations := make(map[PlayerState]map[Direction][]*ebiten.Image)
 
-	states := []PlayerState{Idle, Running}
+	states := []PlayerState{Idle, Running, Attacking}
 	directions := []Direction{Down, Up, Left, Right}
 	stateNames := map[PlayerState]string{
-		Idle:    "idle",
-		Running: "run",
+		Idle:      "idle",
+		Running:   "run",
+		Attacking: "attack2",
 	}
 	dirNames := map[Direction]string{
 		Down:  "down",
@@ -120,8 +159,9 @@ func LoadPlayerAnimations(frameWidth, frameHeight, frameDelay int) map[PlayerSta
 	}
 
 	frameCounts := map[PlayerState]int{
-		Idle:    8,
-		Running: 8,
+		Idle:      8,
+		Running:   8,
+		Attacking: 8,
 	}
 
 	for _, state := range states {
@@ -138,4 +178,25 @@ func LoadPlayerAnimations(frameWidth, frameHeight, frameDelay int) map[PlayerSta
 	}
 
 	return animations
+}
+
+func (p *Player) Attack(enemies []*Enemy) {
+	if p.AttackTimer > 0 || p.State == Attacking {
+		return
+	}
+
+	p.IsAttacking = true
+	p.State = Attacking
+	p.FrameIndex = 0
+	p.AttackTimer = p.AttackCooldown
+
+	for _, e := range enemies {
+		dx := e.X - p.X
+		dy := e.Y - p.Y
+		dist := math.Hypot(dx, dy)
+
+		if dist <= p.AttackRange {
+			e.TakeDamage(1)
+		}
+	}
 }
