@@ -2,11 +2,9 @@ package main
 
 import (
 	"image"
-	"image/color"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
@@ -66,15 +64,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, enemy := range g.Enemies {
 		enemy.Draw(screen, g.Camera)
 	}
-
-	if g.Player.AttackTimer == g.Player.AttackCooldown-1 {
-		screenX := (g.Player.X - g.Camera.X) * g.Camera.Zoom
-		screenY := (g.Player.Y - g.Camera.Y) * g.Camera.Zoom
-
-		radius := g.Player.AttackRange * g.Camera.Zoom
-
-		ebitenutil.DrawCircle(screen, screenX, screenY, radius, color.RGBA{255, 0, 0, 100})
-	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -107,7 +96,7 @@ func main() {
 		State:          Idle,
 		FrameWidth:     96,
 		FrameHeight:    80,
-		FrameDelay:     1,
+		FrameDelay:     5,
 		AttackCooldown: 20,
 		AttackRange:    40,
 	}
@@ -120,7 +109,7 @@ func main() {
 			Y:          100,
 			Speed:      1.2,
 			Frames:     batFrames,
-			FrameDelay: 10,
+			FrameDelay: 5,
 			FrameIndex: 0,
 			FrameTimer: 0,
 			HP:         3,
