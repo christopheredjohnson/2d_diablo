@@ -14,6 +14,7 @@ type Game struct {
 	Enemies       []*Enemy
 	Camera        *Camera
 	FloatingTexts []*FloatingText
+	Inventory     *Inventory
 }
 
 func (g *Game) Update() error {
@@ -56,10 +57,18 @@ func (g *Game) Update() error {
 	}
 
 	g.Camera.CenterOn(g.Player.X, g.Player.Y)
+
+	g.Inventory.Update()
+
+	// For testing, press `P` to add a random item
+	if ebiten.IsKeyPressed(ebiten.KeyP) {
+		g.Inventory.AddItem(CreateTestItem())
+	}
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+
 	screen.Fill(color.White)
 	g.Player.Draw(screen, g.Camera)
 
@@ -70,6 +79,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, ft := range g.FloatingTexts {
 		ft.Draw(screen, g.Camera)
 	}
+
+	g.Inventory.Draw(screen)
+	g.Inventory.DrawTooltip(screen)
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("X: %.2f Y: %.2f Zoom: %.2f", g.Player.X, g.Player.Y, g.Camera.Zoom))
 }
