@@ -24,13 +24,15 @@ func main() {
 		FrameDelay:     5,
 		AttackCooldown: 20,
 		AttackRange:    40,
+		HP:             10,
+		MaxHP:          10,
 	}
-	// spawner := &Spawner{
-	// 	X:             300,
-	// 	Y:             300,
-	// 	SpawnInterval: 180, // every 3 seconds at 60 FPS
-	// 	MaxEnemies:    10,
-	// }
+	spawner := &Spawner{
+		X:             300,
+		Y:             300,
+		SpawnInterval: 180, // every 3 seconds at 60 FPS
+		MaxEnemies:    10,
+	}
 	enemies := []*Enemy{}
 
 	camera := &Camera{
@@ -42,7 +44,7 @@ func main() {
 	}
 
 	g := &Game{
-		// Spawners:  []*Spawner{spawner},
+		Spawners:  []*Spawner{spawner},
 		Player:    player,
 		Enemies:   enemies,
 		Camera:    camera,

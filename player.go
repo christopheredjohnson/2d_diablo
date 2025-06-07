@@ -8,6 +8,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/image/font/basicfont"
 )
 
 type Direction int
@@ -42,6 +44,9 @@ type Player struct {
 	AttackTimer    int
 	AttackCooldown int
 	AttackRange    float64
+	HP             int
+	MaxHP          int
+	DamageCooldown int // frames remaining until next hit
 }
 
 func (p *Player) AdvanceFrame() {
@@ -72,6 +77,10 @@ func (p *Player) AdvanceFrame() {
 
 // Called each frame to move and animate the player
 func (p *Player) Update() {
+
+	if p.DamageCooldown > 0 {
+		p.DamageCooldown--
+	}
 
 	if p.AttackTimer > 0 {
 		p.AttackTimer--
@@ -204,15 +213,60 @@ func (p *Player) Attack(enemies []*Enemy, game *Game) {
 		if dist <= p.AttackRange {
 			e.TakeDamage(1)
 			// Spawn floating text
-			fx := &FloatingText{
+			game.FloatingTexts = append(game.FloatingTexts, &FloatingText{
 				X:           e.X,
-				Y:           e.Y - 20, // slight offset above the enemy
+				Y:           e.Y - 10,
 				Text:        "-1",
-				Alpha:       1.0,
+				Color:       color.RGBA{255, 0, 0, 255},
 				Lifetime:    0,
-				MaxLifetime: 60, // about 1 second at 60fps
-			}
-			game.FloatingTexts = append(game.FloatingTexts, fx)
+				MaxLifetime: 60,
+				Alpha:       1.0,
+			})
 		}
 	}
+}
+
+func (p *Player) TakeDamage(dmg int) {
+	p.HP -= dmg
+	if p.HP < 0 {
+		p.HP = 0
+	}
+}
+
+func drawPlayerHPBar(screen *ebiten.Image, player *Player) {
+	x := 20
+	y := 20
+	width := 200
+	height := 16
+
+	// Avoid divide-by-zero
+	maxHP := math.Max(1, float64(player.MaxHP))
+	hpRatio := float64(player.HP) / maxHP
+
+	// Clamp between 0 and 1
+	hpRatio = math.Max(0, math.Min(1, hpRatio))
+	barWidth := int(hpRatio * float64(width))
+
+	// Background
+	bg := ebiten.NewImage(width, height)
+	bg.Fill(color.RGBA{40, 40, 40, 255})
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	screen.DrawImage(bg, op)
+
+	// Foreground
+	if barWidth > 0 {
+		fg := ebiten.NewImage(barWidth, height)
+		fg.Fill(color.RGBA{255, 0, 0, 255})
+		op2 := &ebiten.DrawImageOptions{}
+		op2.GeoM.Translate(float64(x), float64(y))
+		screen.DrawImage(fg, op2)
+	}
+
+	// Text
+	text.Draw(screen,
+		fmt.Sprintf("HP: %d / %d", player.HP, player.MaxHP),
+		basicfont.Face7x13,
+		x+4, y+height+14,
+		color.White)
 }

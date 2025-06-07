@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -31,6 +32,33 @@ func (g *Game) Update() error {
 	}
 	g.Enemies = aliveEnemies
 
+	for _, enemy := range g.Enemies {
+		if enemy.Dead {
+			continue
+		}
+
+		// Distance to player
+		dx := enemy.X - g.Player.X
+		dy := enemy.Y - g.Player.Y
+		dist := math.Hypot(dx, dy)
+
+		if dist < 20 && g.Player.DamageCooldown == 0 {
+			g.Player.TakeDamage(1)
+			g.Player.DamageCooldown = 30 // half second cooldown
+
+			// Floating text
+			g.FloatingTexts = append(g.FloatingTexts, &FloatingText{
+				X:           g.Player.X,
+				Y:           g.Player.Y - 10,
+				Text:        "-1",
+				Color:       color.RGBA{255, 0, 0, 255},
+				Lifetime:    0,
+				MaxLifetime: 60,
+				Alpha:       1.0,
+			})
+		}
+	}
+
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
 		g.Camera.Zoom += 0.01
 	}
@@ -41,14 +69,15 @@ func (g *Game) Update() error {
 		}
 	}
 
-	aliveTexts := []*FloatingText{}
-	for _, ft := range g.FloatingTexts {
-		ft.Update()
-		if ft.Lifetime < ft.MaxLifetime {
-			aliveTexts = append(aliveTexts, ft)
+	for i := 0; i < len(g.FloatingTexts); {
+		g.FloatingTexts[i].Update()
+		if g.FloatingTexts[i].Lifetime >= g.FloatingTexts[i].MaxLifetime {
+			// Remove expired text
+			g.FloatingTexts = append(g.FloatingTexts[:i], g.FloatingTexts[i+1:]...)
+		} else {
+			i++
 		}
 	}
-	g.FloatingTexts = aliveTexts
 
 	g.Player.Update()
 
@@ -64,6 +93,11 @@ func (g *Game) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyP) {
 		g.Inventory.AddItem(CreateTestItem())
 	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyH) {
+		g.Player.TakeDamage(1)
+	}
+
 	return nil
 }
 
@@ -83,6 +117,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.Inventory.Draw(screen)
 	g.Inventory.DrawTooltip(screen)
 
+	drawPlayerHPBar(screen, g.Player)
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("X: %.2f Y: %.2f Zoom: %.2f", g.Player.X, g.Player.Y, g.Camera.Zoom))
 }
 
